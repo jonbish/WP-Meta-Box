@@ -1,21 +1,19 @@
 <?php
 
 class metaBoxes {
+
     static $scripts = array();
     static $scripts_ouput = array();
-    
     static $styles = array();
     static $styles_output = array();
-    
     public $meta_fields = array();
     public $meta_box_name = '';
-     
     //private $admin_meta_boxes;
     private $post_type = '';
     private $page_template = '';
     private $box_context; // 'normal', 'advanced', or 'side'
     private $box_priority; //'high', 'core', 'default' or 'low'
-    
+
     /**
      * Create a new instance of metaBoxes
      *
@@ -23,6 +21,7 @@ class metaBoxes {
      *
      * @param string $post_type name of the post type to dislay meta
      */
+
     function metaBoxes($post_type = '', $page_template = '') {
         $this->post_type = $post_type;
         $this->page_template = $page_template;
@@ -58,15 +57,15 @@ class metaBoxes {
 
         $field['name'] = $field_name;
         $field['type'] = $field_type;
-        
-        $args = wp_parse_args( $args, array(
+
+        $args = wp_parse_args($args, array(
             'placement' => 'top',
             'value' => '1',
             'width' => '80%',
             'key' => sanitize_key($field['name']),
             'class' => ''
-        ) );
-         
+                ));
+
         $field['args'] = $args;
 
         //array_push($this->admin_fields, $field);
@@ -88,15 +87,13 @@ class metaBoxes {
      *
      * @access public
      * 
-     *@param int $post_ID the of the post you wish to process meta data for
+     * @param int $post_ID the of the post you wish to process meta data for
      */
     public function process($post_ID) {
         $nonce_name = sanitize_key($this->meta_box_name) . '-nonce';
-        
-        if ( WP_DEBUG ) { dbgx_trace_var( $this->meta_fields, 'Saving Custom Meta' ); }
-        
-        if ( isset($_POST[$nonce_name]) && check_admin_referer('updating_amp_post_meta', $nonce_name) ){
-            
+
+        if (isset($_POST[$nonce_name]) && check_admin_referer('updating_post_meta', $nonce_name)) {
+
             if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE)
                 return $post_ID;
 
@@ -110,18 +107,16 @@ class metaBoxes {
 
 
             if (!wp_is_post_revision($post_ID) && !wp_is_post_autosave($post_ID)) {
-                foreach($this->meta_fields as $field){
-                    
-                        do_action( 'amp_process_meta-' . $field['type'], $field );
-                        
-                        update_post_meta($post_ID, $field['args']['key'], $_POST[$field['args']['key']]);   
-                        // Trace some variables if we're debugging
-                        if ( WP_DEBUG ) { dbgx_trace_var( $_POST[$field['args']['key']], $field['args']['key'] ); }
+                foreach ($this->meta_fields as $field) {
+
+                    do_action('amp_process_meta-' . $field['type'], $field);
+
+                    update_post_meta($post_ID, $field['args']['key'], $_POST[$field['args']['key']]);
                 }
             }
         }
     }
-    
+
     /**
      * Creates the new meta boxes
      *
@@ -131,23 +126,23 @@ class metaBoxes {
     public function create_meta_box() {
         $post_id = $_GET['post'] ? $_GET['post'] : $_POST['post_ID'];
         // check for a template type
-        $template_file = get_post_meta($post_id,'_wp_page_template',true);
-        if ($this->page_template != ''){
-            if ($template_file == $this->page_template){
+        $template_file = get_post_meta($post_id, '_wp_page_template', true);
+        if ($this->page_template != '') {
+            if ($template_file == $this->page_template) {
                 add_meta_box('amp-' . sanitize_key($this->meta_box_name), __($this->meta_box_name, 'amp'), array(&$this, 'display'), $this->post_type, $this->box_context, $this->box_priority);
             }
         } else {
             add_meta_box('amp-' . sanitize_key($this->meta_box_name), __($this->meta_box_name, 'amp'), array(&$this, 'display'), $this->post_type, $this->box_context, $this->box_priority);
         }
     }
-    
+
     /**
      * Run all of the actions required to set up custom post types
      *
      * @access public
      *
      */
-    public function init(){
+    public function init() {
         //$this->script_handler();
         add_action('admin_menu', array(&$this, 'create_meta_box'));
         add_action('save_post', array(&$this, 'process'));
@@ -156,7 +151,7 @@ class metaBoxes {
         add_action('admin_head-post.php', array(&$this, 'styles'));
         add_action('admin_head-post-new.php', array(&$this, 'styles'));
     }
-    
+
     /**
      * Add script to be displayed if a specific key (field) is in use
      *
@@ -166,26 +161,26 @@ class metaBoxes {
      * @param string $script a string of javascript to insert into admin head
      * 
      */
-    public function add_script($key, $js = ""){
-        if($js != "" && !array_key_exists($key, self::$scripts)){
+    public function add_script($key, $js = "") {
+        if ($js != "" && !array_key_exists($key, self::$scripts)) {
             //echo 'Adding js with a key of ' . $key . ' and js that is ' . strlen(serialize($js)) . ' bytes long';
             self::$scripts[$key] = $js;
         }
     }
-    
+
     /**
      * Display all scripts
      *
      * @access public
      *
      */
-    public function scripts(){
+    public function scripts() {
         //print_r(self::$scripts);
-        if(!empty(self::$scripts)){
-            foreach(self::$scripts as $key=>$js){
-                foreach($this->meta_fields as $field){
+        if (!empty(self::$scripts)) {
+            foreach (self::$scripts as $key => $js) {
+                foreach ($this->meta_fields as $field) {
                     //echo 'checking if ' . $key . ' = ' . $field['type'];
-                    if($field['type'] == $key && !in_array($key, self::$scripts_ouput)){
+                    if ($field['type'] == $key && !in_array($key, self::$scripts_ouput)) {
                         echo '<script type="text/javascript">';
                         echo '
                             //' . $key;
@@ -197,7 +192,7 @@ class metaBoxes {
             }
         }
     }
-    
+
     /**
      * Add style to be displayed if a specific key (field) is in use
      *
@@ -207,25 +202,25 @@ class metaBoxes {
      * @param string $script a string of javascript to insert into admin head
      * 
      */
-    public function add_style($key, $css = ""){
-        if($css != "" && !array_key_exists($key, self::$styles)){
+    public function add_style($key, $css = "") {
+        if ($css != "" && !array_key_exists($key, self::$styles)) {
             self::$styles[$key] = $css;
         }
     }
-    
+
     /**
      * Display all styles
      *
      * @access public
      *
      */
-    public function styles(){
+    public function styles() {
         //print_r(self::$scripts);
-        if(!empty(self::$styles)){
-            foreach(self::$styles as $key=>$css){
-                foreach($this->meta_fields as $field){
+        if (!empty(self::$styles)) {
+            foreach (self::$styles as $key => $css) {
+                foreach ($this->meta_fields as $field) {
                     //echo 'checking if ' . $key . ' = ' . $field['type'];
-                    if($field['type'] == $key && !in_array($key, self::$styles_ouput)){
+                    if ($field['type'] == $key && !in_array($key, self::$styles_ouput)) {
                         echo '<style>';
                         echo '
                             //' . $key;
@@ -237,7 +232,7 @@ class metaBoxes {
             }
         }
     }
-    
+
     /**
      * Create the HTML for a form field
      *
@@ -249,13 +244,52 @@ class metaBoxes {
      * 
      * @return string $output_html a string of HTML with a field and label
      */
-    protected function create_field($field_name, $field_type = 'text', $args = array()){
-       
-        
+    protected function create_field($field_name, $field_type = 'text', $args = array()) {
+        $output_html = '';
+        $output_field = '';
+        $field_value = '';
+
+        if (isset($_GET['post']) && in_array($args['key'], get_post_custom_keys($_GET['post']))) {
+            $field_value = get_post_meta(intval($_GET['post']), $args['key'], true);
+        }
+
+        // Create form fields
+        switch ($field_type) {
+            case 'text':
+                $output_field = '<input type="text" style="width:' . $args['width'] . ';" name="' . $args['key'] . '" value="' . $field_value . '" />';
+                break;
+            case 'checkbox':
+                $output_field = '<input type="checkbox" id="' . $args['key'] . '" name="' . $args['key'] . '"  value="' . $args['value'] . '" ' . checked($args['value'], $field_value, false) . ' />';
+                break;
+            case 'textarea':
+                $output_field = '<textarea name="' . $args['key'] . '" rows="4" style="width:' . $args['width'] . ';">' . $field_value . '</textarea>';
+                break;
+        }
+
+        // Wrap form fields and add labels
+        $output_html .= '<div style="float:left; display:block; padding:5px 0px; width:100%;">';
+
+        if ($args['placement'] == 'left') {
+            $output_html .= '<p><label for="' . $args['key'] . '" style="font-weight:bold; width:150px; display:block; float:left;">' . $field_name . '</label> ';
+            $output_html .= $output_field . '</p>';
+        } else if ($args['placement'] == 'top') {
+            $output_html .= '<label for="' . $args['key'] . '" style="font-size:16px; font-weight:bold; color:#719a56;">' . $field_name . '</label>';
+            $output_html .= '<p>' . $output_field . '</p>';
+        } else if ($args['placement'] == 'right') {
+            $output_html .= '<p>' . $output_field;
+            $output_html .= ' <label for="' . $args['key'] . '" style="font-size:16px; font-weight:bold; color:#719a56; float:left;">' . $field_name . '</label></p>';
+        } else if ($args['placement'] == 'section') {
+            $output_html .= '<label for="' . $args['key'] . '" style="font-size:16px; font-weight:bold; color:#719a56;">' . $field_name . '</label>';
+        }
+
+        $output_html .= '</div>';
+
+        return $output_html;
+
         return $output_html;
     }
-    
-     /**
+
+    /**
      * Create the HTML for a form field
      *
      * @access protected
@@ -264,21 +298,29 @@ class metaBoxes {
      * 
      * @return string $output_html a string of HTML containing all fields within specified box
      */
-    protected function generate_meta_box($box_name){
-       
-        
+    protected function generate_meta_box($box_name) {
+        $output_html = '<div>';
+        $output_html .= wp_nonce_field( 'updating_post_meta', sanitize_key($this->meta_box_name) . '-nonce', true, false );
+        //$output_html .= '<input type="hidden" name="amp_settings_noncename" id="amp_settings_noncename" value="' . wp_create_nonce(sanitize_key($this->meta_box_name) . '-nonce') . '" />';
+        foreach($this->meta_fields as $field){
+            $output_html .= $this->create_field($field['name'], $field['type'], $field['args']);
+        }
+        $output_html .= '</div><div style="clear:both"></div>';
+
         return $output_html;
     }
-    
-     /**
-     * Runs on init and loads necessary scripts and styles in admin header
+
+    /**
+     * Runs on init and loads necessary scripts and styles in admin header.
+     * (Work in progress)
      *
      * @access protected
      *
      */
-    protected function script_handler(){
+    protected function script_handler() {
         
     }
+
 }
 
 ?>
